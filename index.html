@@ -4,6 +4,31 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>jev-2048</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { max-width: 440px; margin: 32px auto; padding: 0 16px; font-family: system-ui, sans-serif; color: #292524; background: #fafaf9; }
+    h1 { font-size: 28px; }
+    #board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 8px; background: #a8a29e; border-radius: 6px; touch-action: none; }
+    .tile { aspect-ratio: 1; display: grid; place-items: center; border-radius: 3px; background: #e7e5e4; font-size: clamp(18px, 6vw, 30px); font-weight: 700; }
+    .tile[data-value="0"] { background: #d6d3d1; }
+    .tile[data-value="4"] { background: #fef3c7; }
+    .tile[data-value="8"], .tile[data-value="16"] { background: #fed7aa; }
+    .tile[data-value="32"], .tile[data-value="64"] { background: #fca5a5; }
+    .tile.high { background: #fde047; }
+    #status { min-height: 3em; }
+    footer { margin-top: 32px; font-size: 14px; line-height: 1.5; }
+    a { color: #44403c; }
+  </style>
 </head>
-<body>hello world from jev-2048</body>
+<body>
+  <main>
+    <h1>jev-2048</h1>
+    <p>Score: <output id="score"></output></p>
+    <p id="instructions">Use arrow keys or swipe. Merge equal tiles to reach 2048.</p>
+    <div id="board" role="group" aria-label="2048 board" aria-describedby="instructions" tabindex="0"></div>
+    <p id="status" role="status" aria-live="polite"></p>
+  </main>
+  <footer>Inspired by <a href="https://github.com/gabrielecirulli/2048">2048 by Gabriele Cirulli and contributors</a>.</footer>
+  <script type="module" src="game.mjs"></script>
+</body>
 </html>
