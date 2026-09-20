@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { boardRows, newGame, move, isGameOver } from './engine.mjs';
 import { createRequest } from './jev.mjs';
 import { runJev } from './player.mjs';
+import { MAX_SAMPLES, readTimings, writeTimings, histogram } from './metrics.mjs';
 import './style.css';
 
 const defaultInstructions = 'Choose the best next move to reach the highest tile in 2048. `board` is a 4×4 array: rows run top to bottom, columns left to right, and 0 means empty. Equal tiles merge once per move. A random 2 or 4 appears after each move. Only legal moves are offered.';
@@ -14,10 +15,14 @@ function App() {
   const busy = activity !== '';
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
+  const [timings, setTimings] = useState(readTimings);
+  const [metricsSaved, setMetricsSaved] = useState(true);
   const pending = useRef(null);
   const gesture = useRef(null);
   const score = Math.max(...board);
   const over = isGameOver(board);
+  const { bins, average } = histogram(timings);
+  const largestBin = Math.max(1, ...bins.map(bin => bin.count));
   const request = !over && instructions.trim() ? createRequest(board, instructions) : null;
 
   function clearResult() {
@@ -45,6 +50,7 @@ function App() {
   }, [board]);
 
   useEffect(() => () => pending.current?.abort(), []);
+  useEffect(() => { setMetricsSaved(writeTimings(timings)); }, [timings]);
 
   async function submit(event) {
     event.preventDefault();
@@ -61,6 +67,8 @@ function App() {
         onAnswer(nextBoard, data) {
           setBoard(nextBoard);
           setResult({ ...data, played: continuous });
+          // ponytail: retain 10,000 timings; use a database only if longer history is needed.
+          setTimings(previous => [...previous, data.elapsed].slice(-MAX_SAMPLES));
         }
       });
     } catch (error) {
@@ -138,6 +146,26 @@ function App() {
           <pre>{JSON.stringify({ move: result.answer }, null, 2)}</pre>
           <p>Response time: {result.elapsed} ms</p>
         </>}
+      </section>
+      <section id="metrics" aria-labelledby="metrics-heading">
+        <h2 id="metrics-heading">Metrics</h2>
+        <p>Jev response times, measured by the server. Successful responses only.</p>
+        <p>{metricsSaved ? 'Saved in this browser' : 'Browser storage unavailable; kept until refresh'} · Latest {MAX_SAMPLES.toLocaleString()} responses.</p>
+        {timings.length ? <>
+          <p>{timings.length.toLocaleString()} responses · Average: {average.toLocaleString()} ms</p>
+          <figure className="histogram">
+            <figcaption>Response time distribution</figcaption>
+            <div className="histogram-labels" aria-hidden="true"><span>Time (ms)</span><span>Number of responses</span></div>
+            <ol>
+              {bins.map(bin => <li key={bin.from}>
+                <span>{bin.from.toLocaleString()}–{bin.to.toLocaleString()}<span className="sr-only"> milliseconds:</span></span>
+                <span className="histogram-track" aria-hidden="true"><span style={{ width: `${bin.count / largestBin * 100}%` }} /></span>
+                <span>{bin.count}<span className="sr-only"> responses</span></span>
+              </li>)}
+            </ol>
+          </figure>
+          <button type="button" onClick={() => setTimings([])}>Clear metrics</button>
+        </> : <p>Submit a question or start autoplay to collect response times.</p>}
       </section>
     </main>
     <footer>Inspired by <a href="https://github.com/gabrielecirulli/2048">2048 by Gabriele Cirulli and contributors</a>.</footer>

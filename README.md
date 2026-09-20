@@ -57,6 +57,17 @@ and `dist/` are ignored by Git; `.env.example` is safe to commit.
 
 This version runs locally with Node; it cannot run as a GitHub Pages static site.
 
+## Metrics
+
+The Metrics section below the game shows a histogram of successful Jev response
+times from both Submit and autoplay, plus their count and average. Times are in
+milliseconds as measured by the Node server around the TypeSafe request, excluding
+the browser-to-local-server trip. Failed or cancelled calls are not counted.
+
+The latest 10,000 timings are saved in this browser and survive game refreshes.
+Clear metrics starts a new sample set. If browser storage is unavailable, timings
+still accumulate for the current page. No API keys, prompts, or boards are saved.
+
 ## Checks
 
 ```sh
