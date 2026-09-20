@@ -1,0 +1,25 @@
+import assert from 'node:assert/strict';
+import { slide, spawn, move, newGame, isGameOver } from './engine.mjs';
+
+const row = values => [...values, ...Array(12).fill(0)];
+const original = row([2, 2, 2, 2]);
+assert.deepEqual(slide(original, 'left'), { board: row([4, 4, 0, 0]), score: 8, moved: true });
+assert.deepEqual(original, row([2, 2, 2, 2]));
+assert.deepEqual(slide(row([2, 2, 4, 0]), 'left').board, row([4, 4, 0, 0]));
+assert.deepEqual(slide(row([2, 0, 2, 2]), 'right').board, row([0, 0, 2, 4]));
+const vertical = [2, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 4, 0, 0, 0];
+assert.deepEqual(slide(vertical, 'up').board, [4, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+assert.deepEqual(slide(vertical, 'down').board, [0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 8, 0, 0, 0]);
+assert.equal(slide(row([1024, 1024, 0, 0]), 'left').score, 2048);
+assert.deepEqual(move(row([2, 0, 0, 0]), 'left', () => { throw new Error('No-op spawned a tile'); }).board, row([2, 0, 0, 0]));
+assert.deepEqual(move(row([2, 2, 0, 0]), 'left', () => 0).board, row([4, 2, 0, 0]));
+assert.equal(spawn(Array(16).fill(0), () => 0.95)[15], 4);
+assert.equal(spawn(Array(16).fill(0), () => 0)[0], 2);
+const blocked = [2, 4, 2, 4, 4, 2, 4, 2, 2, 4, 2, 4, 4, 2, 4, 2];
+assert.equal(isGameOver(blocked), true);
+assert.deepEqual(spawn(blocked), blocked);
+assert.equal(isGameOver([4, ...blocked.slice(1)]), false);
+assert.equal(isGameOver(row([2, 0, 0, 0])), false);
+assert.equal(newGame().filter(Boolean).length, 2);
+assert.throws(() => slide(original, 'invalid'), /Unknown direction/);
+console.log('2048 engine checks passed');
