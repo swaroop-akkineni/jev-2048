@@ -1,12 +1,4 @@
-import { directions, slide } from './engine.mjs';
-
-export function boardRows(board) {
-  return Array.from({ length: 4 }, (_, row) => board.slice(row * 4, row * 4 + 4));
-}
-
-export function maskKey(key) {
-  return key.length > 7 ? `${key.slice(0, 3)}********${key.slice(-4)}` : '*'.repeat(key.length);
-}
+import { directions, slide, boardRows } from './engine.mjs';
 
 export function createRequest(board, instructions) {
   if (!Array.isArray(board) || board.length !== 16 || board.some(value =>
@@ -44,15 +36,15 @@ export function readAnswer(data, request) {
   return answer;
 }
 
-export async function askJev(request, apiKey) {
-  if (!apiKey.trim()) throw new Error('Enter your TypeSafe API key.');
+export async function askJev(request, apiKey, signal) {
+  if (!apiKey.trim()) throw new Error('Add TYPESAFE_API_KEY to .env, then restart npm start.');
   let response;
   try {
     response = await fetch('https://api.typesafe.ai/v1/systemone', {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey.trim()}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(request),
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.any([AbortSignal.timeout(15000), ...(signal ? [signal] : [])]),
       credentials: 'omit',
       cache: 'no-store',
       redirect: 'error'
@@ -61,7 +53,7 @@ export async function askJev(request, apiKey) {
     if (error.name === 'TimeoutError' || error.name === 'AbortError') {
       throw new Error('Jev did not respond within 15 seconds. Try again.');
     }
-    throw new Error('Could not reach TypeSafe. This may be a network or CORS error; check the browser console for details.');
+    throw new Error('The local server could not reach TypeSafe. Check your connection and try again.');
   }
   if (!response.ok) {
     const messages = {

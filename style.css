@@ -1,0 +1,39 @@
+* { box-sizing: border-box; }
+body { max-width: 440px; margin: 32px auto; padding: 0 16px; font-family: system-ui, sans-serif; color: #292524; background: #fafaf9; }
+h1 { font-size: 28px; }
+h2 { margin-top: 16px; }
+h3 { font-size: 18px; margin-bottom: 8px; }
+main > section { min-width: 0; }
+.actions { display: flex; gap: 8px; margin-top: 16px; }
+summary { cursor: pointer; margin-top: 8px; }
+@media (min-width: 820px) {
+  body { max-width: 1000px; }
+  main { display: grid; grid-template-columns: 408px minmax(0, 1fr); gap: 48px; align-items: start; }
+}
+#board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 8px; background: #a8a29e; border-radius: 6px; touch-action: none; }
+.tile { aspect-ratio: 1; display: grid; place-items: center; border-radius: 3px; background: #e7e5e4; font-size: clamp(18px, 6vw, 30px); font-weight: 700; }
+.tile[data-value="0"] { background: #d6d3d1; }
+.tile[data-value="4"] { background: #fef3c7; }
+.tile[data-value="8"], .tile[data-value="16"] { background: #fed7aa; }
+.tile[data-value="32"], .tile[data-value="64"] { background: #fca5a5; }
+.tile.high { background: #fde047; }
+#status { min-height: 3em; }
+label { display: block; margin: 16px 0 6px; }
+textarea, button { font: inherit; padding: 8px; }
+textarea { width: 100%; }
+textarea { resize: vertical; }
+pre { overflow-x: auto; padding: 12px; background: #e7e5e4; font-size: 14px; }
+#jev-status { min-height: 1.5em; }
+footer { margin-top: 32px; font-size: 14px; line-height: 1.5; }
+a { color: #44403c; }
+#metrics { grid-column: 1 / -1; margin-top: 16px; }
+.histogram { margin: 20px 0; }
+.histogram figcaption { font-weight: 600; margin-bottom: 12px; }
+.histogram-labels, .histogram li { display: grid; grid-template-columns: 115px minmax(0, 1fr) 5ch; gap: 12px; align-items: center; }
+.histogram-labels { font-size: 13px; margin-bottom: 8px; }
+.histogram-labels > :last-child { grid-column: 2 / -1; }
+.histogram ol { list-style: none; padding: 0; margin: 0; }
+.histogram li { margin: 4px 0; font-size: 14px; font-variant-numeric: tabular-nums; }
+.histogram-track { height: 24px; background: #e7e5e4; }
+.histogram-track > span { display: block; height: 100%; background: #57534e; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

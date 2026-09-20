@@ -1,11 +1,9 @@
 import assert from 'node:assert/strict';
-import { boardRows, maskKey, createRequest, readAnswer, askJev } from './jev.mjs';
+import { createRequest, readAnswer, askJev } from './jev.mjs';
+import { boardRows } from './engine.mjs';
 
 const board = [2, ...Array(15).fill(0)];
 assert.deepEqual(boardRows(board), [[2, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]);
-assert.equal(maskKey('abc123456wxyz'), 'abc********wxyz');
-assert.equal(maskKey('short'), '*****');
-assert.equal(maskKey(''), '');
 const request = createRequest(board, ' Pick a move. ');
 assert.equal(request.model, 'jev-latest');
 assert.equal(request.questions.move.instructions, 'Pick a move.');
@@ -34,7 +32,7 @@ try {
     assert.ok(options.signal instanceof AbortSignal);
     return new Response(JSON.stringify({ answers: { move: answer } }));
   };
-  await assert.rejects(askJev(request, ' '), /Enter your TypeSafe API key/);
+  await assert.rejects(askJev(request, ' '), /TYPESAFE_API_KEY/);
   assert.equal(calls, 0);
   assert.deepEqual(await askJev(request, ' fake-test-key '), answer);
   assert.equal(calls, 1);
@@ -43,7 +41,7 @@ try {
     await assert.rejects(askJev(request, 'fake-test-key'), error => !error.message.includes('never display'));
   }
   globalThis.fetch = async () => { throw new TypeError('Failed to fetch'); };
-  await assert.rejects(askJev(request, 'fake-test-key'), /network or CORS/);
+  await assert.rejects(askJev(request, 'fake-test-key'), /could not reach TypeSafe/);
   globalThis.fetch = async () => { throw new DOMException('Timed out', 'TimeoutError'); };
   await assert.rejects(askJev(request, 'fake-test-key'), /15 seconds/);
   globalThis.fetch = async () => new Response('not JSON');
@@ -53,4 +51,4 @@ try {
 } finally {
   globalThis.fetch = originalFetch;
 }
-console.log('Jev request, key masking, response, and network checks passed');
+console.log('Jev request, response, and network checks passed');
