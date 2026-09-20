@@ -16,6 +16,12 @@
     .tile[data-value="32"], .tile[data-value="64"] { background: #fca5a5; }
     .tile.high { background: #fde047; }
     #status { min-height: 3em; }
+    label { display: block; margin: 16px 0 6px; }
+    input, textarea, button { font: inherit; padding: 8px; }
+    input, textarea { width: 100%; }
+    textarea { resize: vertical; }
+    pre { overflow-x: auto; padding: 12px; background: #e7e5e4; font-size: 14px; }
+    #jev-status { min-height: 1.5em; }
     footer { margin-top: 32px; font-size: 14px; line-height: 1.5; }
     a { color: #44403c; }
   </style>
@@ -27,6 +33,22 @@
     <p id="instructions">Use arrow keys or swipe. Merge equal tiles to reach 2048.</p>
     <div id="board" role="group" aria-label="2048 board" aria-describedby="instructions" tabindex="0"></div>
     <p id="status" role="status" aria-live="polite"></p>
+    <section aria-labelledby="jev-heading">
+      <h2 id="jev-heading">Ask Jev</h2>
+      <p>Get one move recommendation from the current board. Play it yourself with arrow keys or a swipe.</p>
+      <form id="jev-form" autocomplete="off">
+        <label for="api-key">API key</label>
+        <input id="api-key" type="password" autocomplete="off" spellcheck="false" autocapitalize="none" required aria-describedby="key-help">
+        <small id="key-help">Sent only to TypeSafe when you submit. Kept in memory; refresh clears it.</small>
+        <label for="jev-instructions">Instructions</label>
+        <textarea id="jev-instructions" rows="5" maxlength="8000" required>Choose the best next move to reach the highest tile in 2048. `board` is a 4×4 array: rows run top to bottom, columns left to right, and 0 means empty. Equal tiles merge once per move. A random 2 or 4 appears after each move. Only legal moves are offered.</textarea>
+        <p id="board-input-label">Board input (read-only)</p>
+        <pre id="board-input" role="region" aria-labelledby="board-input-label"></pre>
+        <button id="jev-submit" type="submit">Submit</button>
+      </form>
+      <p id="jev-status" role="status" aria-live="polite"></p>
+      <pre id="jev-result" hidden></pre>
+    </section>
   </main>
   <footer>Inspired by <a href="https://github.com/gabrielecirulli/2048">2048 by Gabriele Cirulli and contributors</a>.</footer>
   <script type="module" src="game.mjs"></script>
