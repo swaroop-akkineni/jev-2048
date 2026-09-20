@@ -3,9 +3,7 @@ import { newGame, move, isGameOver } from './engine.mjs';
 const boardElement = document.querySelector('#board');
 const scoreElement = document.querySelector('#score');
 const statusElement = document.querySelector('#status');
-const buttons = document.querySelectorAll('[data-direction]');
 let board = newGame();
-let score = 0;
 let over = false;
 
 const tiles = Array.from({ length: 16 }, () => {
@@ -22,13 +20,13 @@ function render() {
     tile.textContent = value || '';
     tile.setAttribute('aria-label', `Row ${Math.floor(index / 4) + 1}, column ${index % 4 + 1}: ${value || 'empty'}`);
   });
+  const score = Math.max(...board);
   scoreElement.value = score;
   over = isGameOver(board);
   const won = board.some(value => value >= 2048);
   statusElement.textContent = over
     ? `Game over. Final score: ${score}.${won ? ' You reached 2048!' : ''}`
     : won ? 'You reached 2048! Keep playing or start a new game.' : 'Reach 2048!';
-  buttons.forEach(button => { button.disabled = over; });
 }
 
 function play(direction) {
@@ -36,16 +34,8 @@ function play(direction) {
   const result = move(board, direction);
   if (!result.moved) return;
   board = result.board;
-  score += result.score;
   render();
 }
-
-buttons.forEach(button => button.addEventListener('click', () => play(button.dataset.direction)));
-document.querySelector('#restart').addEventListener('click', () => {
-  board = newGame();
-  score = 0;
-  render();
-});
 
 document.addEventListener('keydown', event => {
   const direction = { ArrowUp: 'up', ArrowRight: 'right', ArrowDown: 'down', ArrowLeft: 'left' }[event.key];

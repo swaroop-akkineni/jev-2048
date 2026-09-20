@@ -4,7 +4,6 @@ export const directions = ['up', 'right', 'down', 'left'];
 export function slide(board, direction) {
   if (!directions.includes(direction)) throw new Error('Unknown direction');
   const next = board.slice();
-  let score = 0;
   for (let line = 0; line < 4; line++) {
     const indices = Array.from({ length: 4 }, (_, offset) => {
       if (direction === 'left') return line * 4 + offset;
@@ -17,7 +16,6 @@ export function slide(board, direction) {
     for (let i = 0; i < values.length; i++) {
       if (values[i] === values[i + 1]) {
         merged.push(values[i] * 2);
-        score += values[i] * 2;
         i++;
       } else {
         merged.push(values[i]);
@@ -25,7 +23,7 @@ export function slide(board, direction) {
     }
     indices.forEach((index, i) => { next[index] = merged[i] || 0; });
   }
-  return { board: next, score, moved: next.some((value, i) => value !== board[i]) };
+  return { board: next, moved: next.some((value, i) => value !== board[i]) };
 }
 
 export function spawn(board, random = Math.random) {
