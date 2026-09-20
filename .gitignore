@@ -5,3 +5,7 @@
 .env
 .env.*
 !.env.example
+
+# Dependencies and generated browser bundle
+node_modules/
+dist/

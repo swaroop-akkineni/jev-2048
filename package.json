@@ -1,0 +1,21 @@
+{
+  "name": "jev-2048",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.9.0"
+  },
+  "scripts": {
+    "build": "esbuild app.jsx --bundle --minify --format=esm --jsx=automatic --outdir=dist",
+    "prestart": "npm run build",
+    "start": "node --env-file-if-exists=.env server.mjs",
+    "test": "node engine.test.mjs && node jev.test.mjs && node server.test.mjs"
+  },
+  "dependencies": {
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

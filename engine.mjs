@@ -45,3 +45,7 @@ export function move(board, direction, random = Math.random) {
 export function isGameOver(board) {
   return directions.every(direction => !slide(board, direction).moved);
 }
+
+export function boardRows(board) {
+  return Array.from({ length: 4 }, (_, row) => board.slice(row * 4, row * 4 + 4));
+}
