@@ -15,6 +15,7 @@ export function createAppServer() {
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     const send = (status, data) => {
+      if (res.destroyed) return;
       res.writeHead(status, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(data));
     };
@@ -62,9 +63,12 @@ export function createAppServer() {
     }
     const key = process.env.TYPESAFE_API_KEY?.trim();
     if (!key) return send(503, { error: 'Add TYPESAFE_API_KEY to .env, then restart npm start.' });
+    const controller = new AbortController();
+    res.once('close', () => controller.abort());
+    if (res.destroyed) return;
     try {
       const start = performance.now();
-      const answer = await askJev(request, key);
+      const answer = await askJev(request, key, controller.signal);
       send(200, { answer, elapsed: Math.round(performance.now() - start) });
     } catch (error) {
       // askJev exposes only fixed messages, never upstream bodies or credentials.

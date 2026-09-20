@@ -36,7 +36,7 @@ export function readAnswer(data, request) {
   return answer;
 }
 
-export async function askJev(request, apiKey) {
+export async function askJev(request, apiKey, signal) {
   if (!apiKey.trim()) throw new Error('Add TYPESAFE_API_KEY to .env, then restart npm start.');
   let response;
   try {
@@ -44,7 +44,7 @@ export async function askJev(request, apiKey) {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey.trim()}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(request),
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.any([AbortSignal.timeout(15000), ...(signal ? [signal] : [])]),
       credentials: 'omit',
       cache: 'no-store',
       redirect: 'error'

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { get } from 'node:http';
 import { readFile } from 'node:fs/promises';
+import { setTimeout } from 'node:timers/promises';
 import { createAppServer } from './server.mjs';
 
 const realFetch = globalThis.fetch;
@@ -76,7 +77,28 @@ try {
   const networkError = await post(payload);
   assert.equal(networkError.status, 502);
   assert.ok(!(await networkError.text()).includes(secret));
-  console.log('Local server checks passed (routing, secret isolation, validation, and API forwarding)');
+  const started = Promise.withResolvers();
+  const cancelled = Promise.withResolvers();
+  globalThis.fetch = async (_, { signal }) => new Promise((resolve, reject) => {
+    started.resolve();
+    signal.addEventListener('abort', () => {
+      cancelled.resolve();
+      reject(signal.reason);
+    }, { once: true });
+  });
+  const controller = new AbortController();
+  const pending = realFetch(`${base}/api/jev`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload), signal: controller.signal
+  });
+  await started.promise;
+  controller.abort();
+  await assert.rejects(pending, { name: 'AbortError' });
+  await Promise.race([
+    cancelled.promise,
+    setTimeout(1000).then(() => { throw new Error('Disconnect did not cancel the upstream request'); })
+  ]);
+  console.log('Local server checks passed (routing, secret isolation, validation, API forwarding, and cancellation)');
 } finally {
   globalThis.fetch = realFetch;
   if (previousKey === undefined) delete process.env.TYPESAFE_API_KEY;

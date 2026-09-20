@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { boardRows, newGame, move, isGameOver } from './engine.mjs';
+import { createRequest } from './jev.mjs';
+import { runJev } from './player.mjs';
 import './style.css';
 
 const defaultInstructions = 'Choose the best next move to reach the highest tile in 2048. `board` is a 4×4 array: rows run top to bottom, columns left to right, and 0 means empty. Equal tiles merge once per move. A random 2 or 4 appears after each move. Only legal moves are offered.';
@@ -8,13 +10,15 @@ const defaultInstructions = 'Choose the best next move to reach the highest tile
 function App() {
   const [board, setBoard] = useState(newGame);
   const [instructions, setInstructions] = useState(defaultInstructions);
-  const [busy, setBusy] = useState(false);
+  const [activity, setActivity] = useState('');
+  const busy = activity !== '';
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
-  const pending = useRef(false);
+  const pending = useRef(null);
   const gesture = useRef(null);
   const score = Math.max(...board);
   const over = isGameOver(board);
+  const request = !over && instructions.trim() ? createRequest(board, instructions) : null;
 
   function clearResult() {
     setResult(null);
@@ -40,28 +44,34 @@ function App() {
     return () => document.removeEventListener('keydown', onKey);
   }, [board]);
 
+  useEffect(() => () => pending.current?.abort(), []);
+
   async function submit(event) {
     event.preventDefault();
-    if (over || pending.current) return;
-    pending.current = true;
-    setBusy(true);
+    if (over || pending.current || !instructions.trim()) return;
+    const continuous = event.nativeEvent.submitter?.value === 'start';
+    const controller = new AbortController();
+    pending.current = controller;
+    setActivity(continuous ? 'loop' : 'once');
     clearResult();
     try {
-      const response = await fetch('/api/jev', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ board, instructions }),
-        signal: AbortSignal.timeout(20000)
+      await runJev(board, instructions, {
+        signal: controller.signal,
+        continuous,
+        onAnswer(nextBoard, data) {
+          setBoard(nextBoard);
+          setResult({ ...data, played: continuous });
+        }
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'The request failed. Try again.');
-      setResult(data);
     } catch (error) {
-      setError(error.name === 'TimeoutError' ? 'The request timed out. Try again.' :
+      setError(controller.signal.aborted ? 'Stopped.' :
+        error.name === 'TimeoutError' ? 'The request timed out. Try again.' :
         error instanceof TypeError ? 'Could not reach the local server. Check that npm start is running.' : error.message);
     } finally {
-      pending.current = false;
-      setBusy(false);
+      if (pending.current === controller) {
+        pending.current = null;
+        setActivity('');
+      }
     }
   }
 
@@ -81,39 +91,53 @@ function App() {
   }
 
   return <>
+    <h1>jev-2048</h1>
     <main>
-      <h1>jev-2048</h1>
-      <p>Score: <output>{score}</output></p>
-      <p id="instructions">Use arrow keys or swipe. Merge equal tiles to reach 2048.</p>
-      <div id="board" role="group" aria-label="2048 board" aria-describedby="instructions" tabIndex="0"
-        onPointerDown={startSwipe} onPointerUp={endSwipe} onPointerCancel={() => { gesture.current = null; }}>
-        {board.map((value, index) => <div key={index} className={value >= 128 ? 'tile high' : 'tile'} data-value={value}
-          aria-label={`Row ${Math.floor(index / 4) + 1}, column ${index % 4 + 1}: ${value || 'empty'}`}>
-          {value || ''}
-        </div>)}
-      </div>
-      <p id="status" role="status">{over ? `Game over. Final score: ${score}. Refresh to start again.` :
-        score >= 2048 ? 'You reached 2048! Keep playing or refresh to start again.' : 'Reach 2048!'}</p>
+      <section aria-label="Game">
+        <p>Score: <output>{score}</output></p>
+        <p id="instructions">Use arrow keys or swipe. Merge equal tiles to reach 2048.</p>
+        <div id="board" role="group" aria-label="2048 board" aria-describedby="instructions" tabIndex="0"
+          onPointerDown={startSwipe} onPointerUp={endSwipe} onPointerCancel={() => { gesture.current = null; }}>
+          {board.map((value, index) => <div key={index} className={value >= 128 ? 'tile high' : 'tile'} data-value={value}
+            aria-label={`Row ${Math.floor(index / 4) + 1}, column ${index % 4 + 1}: ${value || 'empty'}`}>
+            {value || ''}
+          </div>)}
+        </div>
+        <p id="status" role="status">{over ? `Game over. Final score: ${score}. Refresh to start again.` :
+          score >= 2048 ? 'You reached 2048! Keep playing or refresh to start again.' : 'Reach 2048!'}</p>
+      </section>
       <section aria-labelledby="jev-heading">
         <h2 id="jev-heading">Ask Jev</h2>
-        <p>Get one move recommendation. Play it yourself with arrow keys or a swipe.</p>
-        <form onSubmit={submit} aria-busy={busy}>
+        <p>Submit for one suggestion, or Start to let Jev play until you press Stop.</p>
+        <form onSubmit={submit}>
+          <h3 id="board-input-label">State</h3>
+          <pre id="board-input" role="region" aria-labelledby="board-input-label">
+            {'{\n  "board": [\n' + boardRows(board).map(row => '    ' + JSON.stringify(row)).join(',\n') + '\n  ]\n}'}
+          </pre>
+          <h3>Question</h3>
           <label htmlFor="jev-instructions">Instructions</label>
           <textarea id="jev-instructions" rows="5" maxLength="8000" required disabled={busy} value={instructions}
             onChange={event => { setInstructions(event.target.value); clearResult(); }} />
-          <p id="board-input-label">Board input (read-only)</p>
-          <pre id="board-input" role="region" aria-labelledby="board-input-label">
-            {'[\n' + boardRows(board).map(row => '  ' + JSON.stringify(row)).join(',\n') + '\n]'}
-          </pre>
-          <button type="submit" disabled={busy || over}>{busy ? 'Asking Jev…' : 'Submit'}</button>
+          {request && <details>
+            <summary>View question JSON</summary>
+            <pre>{JSON.stringify(request.questions, null, 2)}</pre>
+          </details>}
+          <div className="actions">
+            <button type="submit" value="once" disabled={busy || over || !instructions.trim()}>{activity === 'once' ? 'Asking Jev…' : 'Submit'}</button>
+            {/* Keep Stop from becoming a submit button during its own click. */}
+            {activity === 'loop' ?
+              <button key="stop" type="button" onClick={() => pending.current?.abort()}>Stop</button> :
+              <button key="start" type="submit" value="start" disabled={busy || over || !instructions.trim()}>Start</button>}
+          </div>
         </form>
-        <p id="jev-status" role="status">{error || (result ? `Jev suggests ${result.answer.choice}. The board has not moved.` : '')}</p>
-        {result && <pre>{[
-          `Suggested move: ${result.answer.choice}`,
-          ...Object.entries(result.answer.probabilities).map(([direction, value]) => `${direction}: ${(value * 100).toFixed(1)}%`),
-          `Confidence: ${(result.answer.confidence * 100).toFixed(1)}%`,
-          `Response time: ${result.elapsed} ms`
-        ].join('\n')}</pre>}
+        <h3>Answers</h3>
+        <p id="jev-status" role="status">{error || (result ?
+          `Jev ${result.played ? 'played' : 'suggests'} ${result.answer.choice}.${activity === 'loop' ? ' Playing…' : ''}` :
+          busy ? 'Asking Jev…' : 'No answer yet.')}</p>
+        {result && <>
+          <pre>{JSON.stringify({ move: result.answer }, null, 2)}</pre>
+          <p>Response time: {result.elapsed} ms</p>
+        </>}
       </section>
     </main>
     <footer>Inspired by <a href="https://github.com/gabrielecirulli/2048">2048 by Gabriele Cirulli and contributors</a>.</footer>

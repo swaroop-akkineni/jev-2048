@@ -9,7 +9,7 @@
     "build": "esbuild app.jsx --bundle --minify --format=esm --jsx=automatic --outdir=dist",
     "prestart": "npm run build",
     "start": "node --env-file-if-exists=.env server.mjs",
-    "test": "node engine.test.mjs && node jev.test.mjs && node server.test.mjs"
+    "test": "node engine.test.mjs && node player.test.mjs && node jev.test.mjs && node server.test.mjs"
   },
   "dependencies": {
     "react": "^19.3.0",

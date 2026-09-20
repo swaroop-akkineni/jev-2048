@@ -35,10 +35,20 @@ server. Node validates them, adds the key from `.env`, and calls TypeSafe with
 `jev-latest` and a Choice question containing only legal moves. This avoids the
 cross-origin browser call that TypeSafe rejects.
 
-Results show the suggested move, probabilities, confidence, and request time.
-The game does not move automatically. Moves and instruction edits pause during
-a request; subsequent moves or edits clear the result. Requests time out, and
-errors are displayed without automatically retrying paid API calls.
+The Jev panel sits beside the board on desktop and below it on smaller screens.
+State shows the current board as sent to the API. Question has editable instructions
+and an expandable preview of the actual question JSON, including legal choices.
+Answers shows the returned move, probabilities, and confidence as JSON, with request
+time underneath.
+
+Submit gets one suggestion without moving. Start repeatedly asks Jev and plays its
+chosen move, sending the updated board each time. Only one request runs at a time.
+Stop cancels the current request and discards any late response; Start resumes from
+the current board. Autoplay also stops on game over, timeout, or error, without
+retrying failed API calls. Keyboard/swipe moves and instruction edits pause while
+Jev is running; manual moves or edits clear the result. The server cancels its
+upstream fetch when the browser disconnects; an already-sent request may still be
+processed by TypeSafe.
 
 The server binds only to `127.0.0.1`, serves only the HTML and bundled assets, and
 rejects requests from other website origins. The key stays server-side: it is
@@ -54,8 +64,8 @@ npm run build
 npm test
 ```
 
-Tests cover the engine, TypeSafe request/response handling, and the local HTTP
-endpoint (including blocked secret files, cross-origin requests, malformed inputs,
+Tests cover the engine, sequential autoplay and cancellation, TypeSafe
+request/response handling, and the local HTTP endpoint (including blocked secret files, cross-origin requests, malformed inputs,
 and simulated upstream success/failure). Tests use a fake key and make no live
 TypeSafe calls.
 
